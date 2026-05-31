@@ -1,5 +1,7 @@
 #MODULES
 import pygame
+import os
+import pickle
 import math
 import neat
 import time
@@ -11,10 +13,12 @@ screen=pygame.display.set_mode((mapx,mapy))
 car_w=150//2
 car_h=125//2
 
-map=pygame.image.load('data/tracks/track2.png').convert()
+os.chdir(os.path.dirname(__file__))
+
+map=pygame.image.load('data/tracks/track-2.png').convert()
 map=pygame.transform.scale(map,(mapx,mapy))
 bad_color=(255,255,255)
-
+speed_cap=4
 
 class Car:
     def __init__(self,image,x,y,net):
@@ -23,7 +27,6 @@ class Car:
         self.rotated_car=self.car
         self.car_hitbox=pygame.Rect(x,y,car_w,car_h)
         self.velocity=0
-        self.acceleration=0.2
         self.friction=0.95
         self.angle=-90
         self.rotation=0
@@ -59,25 +62,19 @@ class Car:
                 self.sensors[value]=0
 
         return self.sensors
-
     def controls(self):
         sensors = self.get_sensors()
         output = self.net.activate(sensors)
-            
-        self.velocity+=self.acceleration * output[0]
-        self.angle+=self.rotation * output[1]
+        
+        self.velocity += 0.2 * output[0] * self.friction
 
-        if output[0]<0:
-            self.acceleration=0.1
-        else:
-            self.acceleration=0.2
+        self.velocity = max(min(self.velocity, speed_cap), -speed_cap)
 
-        if self.velocity>1:
-            self.rotation=3
-        elif self.velocity<-1:
-            self.rotation=-3
+        if not(-0.2<self.velocity<0.2):
+            self.rotation = 2
         else:
             self.rotation=0
+        self.angle += self.rotation * output[1]
 
     def math(self):
         angle_radian=math.radians(self.angle)
@@ -86,6 +83,12 @@ class Car:
 
         self.car_hitbox.x += self.velocity*math.sin(angle_radian)
         self.car_hitbox.y += self.velocity*math.cos(angle_radian)
+
+        if self.velocity > 0.1:
+            self.elapsed_idle_time = 0
+            self.sim_time = time.time()
+        else:
+            self.elapsed_idle_time = time.time() - self.sim_time
 
     def draw(self):
         self.car=pygame.transform.rotate(self.rotated_car,self.angle-90)
@@ -105,37 +108,23 @@ class Car:
             pygame.draw.circle(screen, color, (endx, endy), 4)
 
     def get_reward(self):
+        sensors=self.get_sensors()
         reward=0
-        left_sensor=self.sensors[0]
-        front_sensor=self.sensors[1]
-        right_sensor=self.sensors[2]
-        back_sensor=self.sensors[3]
-
-        if self.velocity>0.1:
-            self.elapsed_idle_time=0
-            self.sim_time=time.time()
-            reward+=self.velocity*2
-        else:
-            self.elapsed_idle_time=time.time()-self.sim_time
-            reward-=self.elapsed_idle_time*2
-
-        if left_sensor>0.3 and self.angle<0:
-            reward+=10
-        elif left_sensor>0.3:
-            reward-=10
-        if right_sensor>0.3 and self.angle>0:
-            reward+=10
-        elif right_sensor>0.3:
-            reward-=10
-        if front_sensor>0.6 and self.velocity<0:
-            reward+=15
-        elif front_sensor>0.3:
-            reward-=10
-        if back_sensor>0.3 and self.velocity>0:
-            reward+=10
-        elif back_sensor>0.3:
-            reward-=10
-
+        reward=self.velocity*4
+        reward-=sensors[0]*10
+        reward-=sensors[2]*10
+        if sensors[1]>0.75:
+            if self.velocity>=0:
+                reward-=sensors[1]*10
+            else:
+                reward+=(1-sensors[1])*10
+                reward+=abs(self.rotation)*3
+        if sensors[3]>0.75:
+            if self.velocity<=0:
+                reward-=sensors[3]*10
+            else:
+                reward+=(1-sensors[3])*10
+                reward+=abs(self.rotation)*3
         return reward
 
 def eval_genomes(genomes,config):
@@ -148,10 +137,13 @@ def eval_genomes(genomes,config):
 
     #training
 
-    for f in range(1100):
+    for f in range(1600):
         all_dead=True
         screen.blit(map,(0,0))
         for car,genome in cars:
+            for event in pygame.event.get():
+                if event.type==pygame.QUIT:
+                    pygame.quit()
             if car.alive:
                 all_dead=False
                 car.controls()
@@ -164,10 +156,7 @@ def eval_genomes(genomes,config):
                 if car.elapsed_idle_time>2:
                     car.alive=False
 
-                if max(car.sensors)>=0.85:
-                    car.alive=False
-
-                if max(car.sensors)>=0 and abs(car.velocity)<0.1:
+                if max(car.sensors)>=0.95:
                     car.alive=False
 
         pygame.display.flip()
@@ -184,8 +173,44 @@ def run_neat(configfile='config.txt'):
     winner=population.run(eval_genomes, 50)
     return winner
 
-pygame.init()
+def run_simulation(genome,configfile='config.txt'):
+    config=neat.Config(neat.DefaultGenome,neat.DefaultReproduction,neat.DefaultSpeciesSet,neat.DefaultStagnation,configfile)
+    net=neat.nn.FeedForwardNetwork.create(genome,config)
+    car=Car('car1.png',mapx//2,mapy-95,net)
+    running=True
+    while running and car.alive:
+        for event in pygame.event.get():
+            if event.type==pygame.QUIT:
+                running=False
+        screen.blit(map,(0,0))
+        car.controls()
+        car.math()
+        car.draw()
 
-run_neat('config.txt')
+        if max(car.sensors)>=0.85:
+            car.alive=False
 
-pygame.quit()
+        pygame.display.flip()
+        pygame.time.delay(10)
+
+while True:
+    choice=int(input('1.Train a model\n2.Run a simulation with a trained model\n'))
+    if choice==1:
+        n=1
+        while os.path.exists(f'data/cars/models/model-{n}.bin'):
+            n+=1
+        f=open(f'data/cars/models/model-{n}.bin','wb')
+        pygame.init()
+        model=run_neat()
+        pygame.quit()
+        pickle.dump(model,f)
+        f.close()
+    if choice==2:
+        n=int(input('Enter model number :'))
+        f=open(f'data/cars/models/model-{n}.bin','rb')
+        model=pickle.load(f)
+        pygame.init()
+        run_simulation(model)
+        pygame.quit()
+    else:
+        break
