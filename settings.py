@@ -1,0 +1,2 @@
+#SETTINGS
+scale_x=1080
