@@ -1,21 +1,21 @@
 [NEAT]
 fitness_criterion     = max
 fitness_threshold     = 100000
-pop_size              = 100
+pop_size              = 150
 reset_on_extinction   = True
-no_fitness_termination = True
+no_fitness_termination = False
 
 [DefaultGenome]
 # Network structure
-num_inputs              = 4
+num_inputs              = 2
 num_outputs             = 2
 num_hidden              = 2
 feed_forward            = True
-initial_connection      = full
+initial_connection      = full_direct
 
 # Activation function
 activation_default      = tanh
-activation_mutate_rate  = 0.2
+activation_mutate_rate  = 0.0
 activation_options      = tanh
 
 # Aggregation function
@@ -30,7 +30,7 @@ bias_init_type          = gaussian
 bias_max_value          = 30.0
 bias_min_value          = -30.0
 bias_mutate_power       = 0.5
-bias_mutate_rate        = 0.8
+bias_mutate_rate        = 0.7
 bias_replace_rate       = 0.1
 
 # Genome compatibility options
@@ -38,7 +38,7 @@ compatibility_disjoint_coefficient = 1.0
 compatibility_weight_coefficient   = 0.5
 
 # Connection add/remove rates
-conn_add_prob           = 0.6
+conn_add_prob           = 0.5
 conn_delete_prob        = 0.1
 
 # Connection enable options
@@ -48,7 +48,7 @@ enabled_rate_to_true_add  = 0.0
 enabled_rate_to_false_add = 0.0
 
 # Node add/remove rates
-node_add_prob           = 0.4
+node_add_prob           = 0.2
 node_delete_prob        = 0.1
 
 # Node response options
@@ -68,7 +68,7 @@ weight_init_type        = gaussian
 weight_max_value        = 30
 weight_min_value        = -30
 weight_mutate_power     = 0.5
-weight_mutate_rate      = 0.9
+weight_mutate_rate      = 0.8
 weight_replace_rate     = 0.1
 
 # Structural mutation
@@ -76,14 +76,14 @@ single_structural_mutation = false
 structural_mutation_surer  = default
 
 [DefaultSpeciesSet]
-compatibility_threshold = 4.0
+compatibility_threshold = 3.0
 
 [DefaultStagnation]
 species_fitness_func = max
-max_stagnation       = 30
-species_elitism      = 2
+max_stagnation       = 40
+species_elitism      = 3
 
 [DefaultReproduction]
-elitism            = 2
-survival_threshold = 0.3
-min_species_size   = 1
+elitism            = 5
+survival_threshold = 0.15
+min_species_size   = 2
