@@ -32,15 +32,7 @@ This project is an AI-powered self-driving car simulation developed using Python
 ---
 
 ## Simulation
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/522878d1-53c5-4c16-946e-5e4da11970aa" width="200" alt="Sim 1"/>
-  <img src="https://github.com/user-attachments/assets/c0e4075c-ac77-470f-b08f-6a3327a097b3" width="200" alt="Sim 2"/>
-  <img src="https://github.com/user-attachments/assets/83f33826-800f-41ee-ab46-9b84b00638d5" width="200" alt="Sim 3"/>
-</p>
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/12df28a7-b7ca-4673-9a52-37ae666366b0" width="400" alt="Final Simulation"/>
-</p>
-
+ 
+https://github.com/user-attachments/assets/30b2a259-77d6-4c02-9145-3090f7a22802
 
 ---
